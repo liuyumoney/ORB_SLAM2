@@ -23,6 +23,8 @@
 
 #include<mutex>
 
+using namespace std;
+
 namespace ORB_SLAM2
 {
 
@@ -271,16 +273,19 @@ void MapPoint::ComputeDistinctiveDescriptors()
 
     // Compute distances between them
     const size_t N = vDescriptors.size();
-
-    float Distances[N][N];
+	float *Distances = new float[N * N];
+    //float Distances[N][N];
     for(size_t i=0;i<N;i++)
     {
-        Distances[i][i]=0;
+        //Distances[i][i]=0;
+		Distances[i * N + i] = 0;
         for(size_t j=i+1;j<N;j++)
         {
             int distij = ORBmatcher::DescriptorDistance(vDescriptors[i],vDescriptors[j]);
-            Distances[i][j]=distij;
-            Distances[j][i]=distij;
+			Distances[i * N + j] = distij;
+			Distances[j * N + i] = distij;
+            //Distances[i][j]=distij;
+            //Distances[j][i]=distij;
         }
     }
 
@@ -289,7 +294,8 @@ void MapPoint::ComputeDistinctiveDescriptors()
     int BestIdx = 0;
     for(size_t i=0;i<N;i++)
     {
-        vector<int> vDists(Distances[i],Distances[i]+N);
+        //vector<int> vDists(Distances[i],Distances[i]+N);
+		vector<int> vDists(&Distances[i * N], &Distances[i * N + N]);
         sort(vDists.begin(),vDists.end());
         int median = vDists[0.5*(N-1)];
 
