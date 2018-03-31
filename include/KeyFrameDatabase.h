@@ -63,7 +63,7 @@ protected:
   const ORBVocabulary* mpVoc;
 
   // Inverted file
-  std::vector<std::list<KeyFrame*> > mvInvertedFile;
+  std::vector<list<KeyFrame*> > mvInvertedFile;
 
   // Mutex
   std::mutex mMutex;

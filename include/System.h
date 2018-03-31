@@ -35,13 +35,6 @@
 #include "KeyFrameDatabase.h"
 #include "ORBVocabulary.h"
 #include "Viewer.h"
-#include <windows.h>
-
-using namespace std;
-
-#ifdef WIN32
-void usleep(int t);
-#endif
 
 namespace ORB_SLAM2
 {

@@ -26,13 +26,6 @@
 #include <pangolin/pangolin.h>
 #include <iomanip>
 
-#ifdef WIN32
-void usleep(int t)
-{
-	Sleep(t / 1000);
-}
-#endif
-
 namespace ORB_SLAM2
 {
 
@@ -312,14 +305,14 @@ void System::Shutdown()
     if(mpViewer)
     {
         mpViewer->RequestFinish();
-		while (!mpViewer->isFinished())
-			usleep(5000); // 睡眠5毫秒			
+        while(!mpViewer->isFinished())
+            usleep(5000);
     }
 
     // Wait until all thread have effectively stopped
     while(!mpLocalMapper->isFinished() || !mpLoopCloser->isFinished() || mpLoopCloser->isRunningGBA())
     {
-		usleep(5000); // 睡眠5毫秒
+        usleep(5000);
     }
 
     if(mpViewer)

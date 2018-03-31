@@ -23,8 +23,6 @@
 #include "ORBmatcher.h"
 #include <thread>
 
-using namespace std;
-
 namespace ORB_SLAM2
 {
 

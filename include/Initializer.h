@@ -23,7 +23,6 @@
 #include<opencv2/opencv.hpp>
 #include "Frame.h"
 
-using namespace std;
 
 namespace ORB_SLAM2
 {

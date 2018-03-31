@@ -42,8 +42,6 @@ int main(int argc, char **argv)
         return 1;
     }
 
-	const int N = 5;
-	int tmp[N];
     // Retrieve paths to images
     vector<string> vstrImageFilenames;
     vector<double> vTimestamps;
@@ -102,9 +100,8 @@ int main(int argc, char **argv)
         else if(ni>0)
             T = tframe-vTimestamps[ni-1];
 
-		if (ttrack < T)
-			//usleep((T-ttrack)*1e6);
-			Sleep((T - ttrack)*1e3);
+        if(ttrack<T)
+            usleep((T-ttrack)*1e6);
     }
 
     // Stop all threads

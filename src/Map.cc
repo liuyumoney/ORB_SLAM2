@@ -21,7 +21,6 @@
 #include "Map.h"
 
 #include<mutex>
-using namespace std;
 
 namespace ORB_SLAM2
 {
@@ -32,7 +31,7 @@ Map::Map():mnMaxKFid(0),mnBigChangeIdx(0)
 
 void Map::AddKeyFrame(KeyFrame *pKF)
 {
-    std::unique_lock<std::mutex> lock(mMutexMap);
+    unique_lock<mutex> lock(mMutexMap);
     mspKeyFrames.insert(pKF);
     if(pKF->mnId>mnMaxKFid)
         mnMaxKFid=pKF->mnId;

@@ -34,7 +34,7 @@ namespace ORB_SLAM2
 class MapDrawer
 {
 public:
-    MapDrawer(Map* pMap, const cv::String &strSettingPath);
+    MapDrawer(Map* pMap, const string &strSettingPath);
 
     Map* mpMap;
 
