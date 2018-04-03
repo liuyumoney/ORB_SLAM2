@@ -489,4 +489,8 @@ vector<cv::KeyPoint> System::GetTrackedKeyPointsUn()
     return mTrackedKeyPointsUn;
 }
 
+int System::GetKeyFrameNumber() {
+    return mpMap->GetAllKeyFrames().size();
+}
+
 } //namespace ORB_SLAM

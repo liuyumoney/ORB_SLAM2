@@ -36,9 +36,9 @@ void LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
 
 int main(int argc, char **argv)
 {
-    if(argc != 4)
+    if(argc != 5)
     {
-        cerr << endl << "Usage: ./stereo_kitti path_to_vocabulary path_to_settings path_to_sequence" << endl;
+        cerr << endl << "Usage: ./stereo_kitti path_to_vocabulary path_to_settings path_to_sequence output_path" << endl;
         return 1;
     }
 
@@ -47,20 +47,27 @@ int main(int argc, char **argv)
     vector<string> vstrImageRight;
     vector<double> vTimestamps;
     LoadImages(string(argv[3]), vstrImageLeft, vstrImageRight, vTimestamps);
-
+    const std::string outputDir(argv[4]);
+    const std::string strSeqPath(argv[3]);
+    const std::string strSeq = strSeqPath.substr(strSeqPath.size() - 3, 2);
     const int nImages = vstrImageLeft.size();
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,true);
+    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,false);
 
     // Vector for tracking time statistics
     vector<float> vTimesTrack;
     vTimesTrack.resize(nImages);
 
     cout << endl << "-------" << endl;
+    cout << "input seq path: " << strSeqPath << endl;
+    cout << "output dir: " << outputDir << endl;
     cout << "Start processing sequence ..." << endl;
     cout << "Images in the sequence: " << nImages << endl << endl;   
 
+
+    const std::string timeFile = outputDir + "ORB-stereo-KITTI-time_" + strSeq + ".txt";
+    FILE *fp = fopen(timeFile.c_str(), "w");
     // Main loop
     cv::Mat imLeft, imRight;
     for(int ni=0; ni<nImages; ni++)
@@ -93,7 +100,7 @@ int main(int argc, char **argv)
 #endif
 
         double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
-
+        fprintf(fp, "%lf\n", ttrack);
         vTimesTrack[ni]=ttrack;
 
         // Wait to load the next frame
@@ -106,6 +113,7 @@ int main(int argc, char **argv)
         if(ttrack<T)
             usleep((T-ttrack)*1e6);
     }
+    fclose(fp);
 
     // Stop all threads
     SLAM.Shutdown();
@@ -122,7 +130,14 @@ int main(int argc, char **argv)
     cout << "mean tracking time: " << totaltime/nImages << endl;
 
     // Save camera trajectory
-    SLAM.SaveTrajectoryKITTI("CameraTrajectory.txt");
+    const std::string trjFile = outputDir + "ORB-stereo-KITTI_" + strSeq + ".txt";
+    SLAM.SaveTrajectoryKITTI(trjFile.c_str());
+
+    // stat info
+    const std::string statFile = outputDir + "ORB-stereo-KITTI-stat_" + strSeq + ".txt";
+    fp = fopen(statFile.c_str(), "w");
+    fprintf(fp, "KeyFrame ratio: %d / %d = %lf\n", SLAM.GetKeyFrameNumber(), nImages, SLAM.GetKeyFrameNumber() * 1.0 / nImages);
+    fclose(fp);    
 
     return 0;
 }
