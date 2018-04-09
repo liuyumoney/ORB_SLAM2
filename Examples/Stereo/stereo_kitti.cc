@@ -69,12 +69,16 @@ int main(int argc, char **argv)
     const std::string timeFile = outputDir + "ORB-stereo-KITTI-time_" + strSeq + ".txt";
     FILE *fp = fopen(timeFile.c_str(), "w");
     // Main loop
-    cv::Mat imLeft, imRight;
+    cv::Mat imLeft, imRight, imgLeft, imgRight;
     for(int ni=0; ni<nImages; ni++)
     {
         // Read left and right images from file
-        imLeft = cv::imread(vstrImageLeft[ni],CV_LOAD_IMAGE_UNCHANGED);
-        imRight = cv::imread(vstrImageRight[ni],CV_LOAD_IMAGE_UNCHANGED);
+        imgLeft = cv::imread(vstrImageLeft[ni],CV_LOAD_IMAGE_UNCHANGED);
+        imgRight = cv::imread(vstrImageRight[ni],CV_LOAD_IMAGE_UNCHANGED);
+        // half sample
+        cv::pyrDown(imgLeft, imLeft, cv::Size(imgLeft.cols / 2, imgLeft.rows/2));
+        cv::pyrDown(imgRight, imRight, cv::Size(imgRight.cols / 2, imgRight.rows/2));
+
         double tframe = vTimestamps[ni];
 
         if(imLeft.empty())
