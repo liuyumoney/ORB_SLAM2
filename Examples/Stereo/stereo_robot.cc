@@ -36,10 +36,17 @@ bool LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
 
 int main(int argc, char **argv)
 {
-    if(argc != 5)
+    if(argc < 5)
     {
-        cerr << endl << "Usage: ./stereo_robot path_to_vocabulary path_to_settings path_to_sequence output_path" << endl;
+        cerr << endl <<
+            "Usage: ./stereo_robot path_to_vocabulary path_to_settings \
+             path_to_sequence output_path iBegin"
+            << endl;
         return 1;
+    }
+    int iBegin = 0;
+    if (argc == 6) {
+        sscanf(argv[5], "%d", &iBegin);
     }
 
     // Retrieve paths to images
@@ -70,7 +77,7 @@ int main(int argc, char **argv)
     FILE *fp = fopen(timeFile.c_str(), "w");
     // Main loop
     cv::Mat imLeft, imRight;
-    for(int ni=0; ni<nImages; ni++)
+    for(int ni=iBegin; ni<nImages; ni++)
     {
         // Read left and right images from file
         imLeft = cv::imread(strSeqPath + "left_rectify/" + vstrImageLeft[ni],
