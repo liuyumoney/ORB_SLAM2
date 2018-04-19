@@ -537,7 +537,9 @@ void Tracking::StereoInitialization()
             }
         }
 
-        cout << "New map created with " << mpMap->MapPointsInMap() << " points" << endl;
+        cout << "New map created with " << mpMap->MapPointsInMap() << " points" <<
+             "start from frame: " << setiosflags(ios::fixed) << setprecision(6) <<
+             mCurrentFrame.mTimeStamp << endl;
 
         mpLocalMapper->InsertKeyFrame(pKFini);
 

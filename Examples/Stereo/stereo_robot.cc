@@ -18,27 +18,27 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <dirent.h>
+#include <sys/stat.h>
+#include <opencv2/core/core.hpp>
+#include <iostream>
+#include <algorithm>
+#include <fstream>
+#include <iomanip>
+#include <chrono>
 
-#include<iostream>
-#include<algorithm>
-#include<fstream>
-#include<iomanip>
-#include<chrono>
-
-#include<opencv2/core/core.hpp>
-
-#include<System.h>
+#include "System.h"
 
 using namespace std;
 
-void LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
+bool LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
                 vector<string> &vstrImageRight, vector<double> &vTimestamps);
 
 int main(int argc, char **argv)
 {
     if(argc != 5)
     {
-        cerr << endl << "Usage: ./stereo_kitti path_to_vocabulary path_to_settings path_to_sequence output_path" << endl;
+        cerr << endl << "Usage: ./stereo_robot path_to_vocabulary path_to_settings path_to_sequence output_path" << endl;
         return 1;
     }
 
@@ -46,10 +46,10 @@ int main(int argc, char **argv)
     vector<string> vstrImageLeft;
     vector<string> vstrImageRight;
     vector<double> vTimestamps;
-    LoadImages(string(argv[3]), vstrImageLeft, vstrImageRight, vTimestamps);
+    if (!LoadImages(string(argv[3]), vstrImageLeft, vstrImageRight, vTimestamps))
+        return 1;
     const std::string outputDir(argv[4]);
     const std::string strSeqPath(argv[3]);
-    const std::string strSeq = strSeqPath.substr(strSeqPath.size() - 3, 2);
     const int nImages = vstrImageLeft.size();
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
@@ -66,15 +66,17 @@ int main(int argc, char **argv)
     cout << "Images in the sequence: " << nImages << endl << endl;   
 
 
-    const std::string timeFile = outputDir + "ORB-stereo-KITTI-time_" + strSeq + ".txt";
+    const std::string timeFile = outputDir + "ORB-stereo-robot-time.txt";
     FILE *fp = fopen(timeFile.c_str(), "w");
     // Main loop
     cv::Mat imLeft, imRight;
     for(int ni=0; ni<nImages; ni++)
     {
         // Read left and right images from file
-        imLeft = cv::imread(vstrImageLeft[ni],CV_LOAD_IMAGE_UNCHANGED);
-        imRight = cv::imread(vstrImageRight[ni],CV_LOAD_IMAGE_UNCHANGED);
+        imLeft = cv::imread(strSeqPath + "left_rectify/" + vstrImageLeft[ni],
+            CV_LOAD_IMAGE_UNCHANGED);
+        imRight = cv::imread(strSeqPath + "right_rectify/" + vstrImageRight[ni],
+            CV_LOAD_IMAGE_UNCHANGED);
         double tframe = vTimestamps[ni];
 
         if(imLeft.empty())
@@ -110,8 +112,8 @@ int main(int argc, char **argv)
         else if(ni>0)
             T = tframe-vTimestamps[ni-1];
 
-        if(ttrack<T)
-            usleep((T-ttrack)*1e6);
+        // if(ttrack<T)
+        //     usleep((T-ttrack)*1e6);
     }
     fclose(fp);
 
@@ -130,11 +132,11 @@ int main(int argc, char **argv)
     cout << "mean tracking time: " << totaltime/nImages << endl;
 
     // Save camera trajectory
-    const std::string trjFile = outputDir + "ORB-stereo-KITTI_" + strSeq + ".txt";
-    SLAM.SaveTrajectoryKITTI(trjFile.c_str());
+    const std::string trjFile = outputDir + "ORB-stereo-robot.txt";
+    SLAM.SaveTrajectoryKITTIWithTime(trjFile.c_str());
 
     // stat info
-    const std::string statFile = outputDir + "ORB-stereo-KITTI-stat_" + strSeq + ".txt";
+    const std::string statFile = outputDir + "ORB-stereo-robot-stat.txt";
     fp = fopen(statFile.c_str(), "w");
     fprintf(fp, "KeyFrame ratio: %d / %d = %lf\n", SLAM.GetKeyFrameNumber(), nImages, SLAM.GetKeyFrameNumber() * 1.0 / nImages);
     fclose(fp);    
@@ -142,38 +144,91 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
-                vector<string> &vstrImageRight, vector<double> &vTimestamps)
-{
-    ifstream fTimes;
-    string strPathTimeFile = strPathToSequence + "/times.txt";
-    fTimes.open(strPathTimeFile.c_str());
-    while(!fTimes.eof())
-    {
-        string s;
-        getline(fTimes,s);
-        if(!s.empty())
-        {
-            stringstream ss;
-            ss << s;
-            double t;
-            ss >> t;
-            vTimestamps.push_back(t);
+void GetFileNames(std::string path, std::vector<std::string> &filenames) {
+    if (path.empty()) {
+        std::cout << "path is NULL" << std::endl;
+        return;
+    }
+#ifdef _WIN32
+    long hFile = 0;
+    struct _finddata_t fileinfo;
+    std::string p;
+    if ((hFile = _findfirst(p.assign(path).append("\\*").c_str(), &fileinfo)) != -1) {  
+        do {
+            //如果是目录,迭代之（即文件夹内还有文件夹）
+            if ((fileinfo.attrib &  _A_SUBDIR)) {
+                //文件名不等于"."&&文件名不等于".."
+                //.表示当前目录
+                //..表示当前目录的父目录
+                //判断时，两者都要忽略，不然就无限递归跳不出去了！
+                // if (strcmp(fileinfo.name, ".") != 0 && strcmp(fileinfo.name, "..") != 0)
+                //     getFiles(p.assign(path).append("\\").append(fileinfo.name), files);
+            }
+            //如果不是,加入列表    
+            else {
+                // 文件名
+                filenames.push_back(fileinfo.name);
+            }
+        } while (_findnext(hFile, &fileinfo) == 0);
+        //_findclose函数结束查找
+        _findclose(hFile);
+    }
+#else   // linux
+    DIR *dp;
+    struct dirent *dirp;
+    std::string file;
+    
+    // check if dir is valid
+    struct stat s;    
+    lstat(path.c_str(), &s);
+    if (!S_ISDIR(s.st_mode)) {
+        std::cout << "dir is not valid" << std::endl;
+        return;
+    }    
+
+    if ((dp = opendir(path.c_str())) == NULL) {
+        std::cout << "can't open " << path << std::endl;
+        return;
+    }
+
+    while((dirp = readdir(dp)) != NULL) {
+        if (dirp->d_type == 8) {
+            file = std::string(dirp->d_name);
+            // 文件名
+            filenames.push_back(file);
         }
     }
 
-    string strPrefixLeft = strPathToSequence + "/image_0/";
-    string strPrefixRight = strPathToSequence + "/image_1/";
+    closedir(dp);
+#endif
+    // sort with file name ASCII
+    std::sort(filenames.begin(), filenames.end());
+}
 
-    const int nTimes = vTimestamps.size();
-    vstrImageLeft.resize(nTimes);
-    vstrImageRight.resize(nTimes);
-
-    for(int i=0; i<nTimes; i++)
-    {
-        stringstream ss;
-        ss << setfill('0') << setw(6) << i;
-        vstrImageLeft[i] = strPrefixLeft + ss.str() + ".png";
-        vstrImageRight[i] = strPrefixRight + ss.str() + ".png";
+bool LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
+                vector<string> &vstrImageRight, vector<double> &vTimestamps)
+{
+    if (strPathToSequence.empty()) {
+        std::cout << "path is null" << std::endl;
+        return false;
     }
+
+    string strPrefixLeft = strPathToSequence + "/left_rectify/";
+    string strPrefixRight = strPathToSequence + "/right_rectify/";
+
+    GetFileNames(strPrefixLeft, vstrImageLeft);
+    GetFileNames(strPrefixRight, vstrImageRight);
+
+    if (vstrImageLeft.size() != vstrImageRight.size()) {
+        std::cout << "image number not equal!" << std::endl;
+        return false;        
+    }
+
+    double time;
+    for (auto file : vstrImageLeft) {
+        sscanf(file.c_str(), "%lf", &time);
+        vTimestamps.emplace_back(time / 1000000.0);
+    }
+
+    return true;
 }
