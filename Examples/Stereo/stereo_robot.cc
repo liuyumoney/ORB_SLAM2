@@ -72,7 +72,12 @@ int main(int argc, char **argv)
     cout << "Start processing sequence ..." << endl;
     cout << "Images in the sequence: " << nImages << endl << endl;   
 
-
+    // Save camera trajectory
+    const std::string trjFile = outputDir + "ORB-stereo-robot.txt";
+    ofstream f;
+    f.open(trjFile.c_str());
+    f << fixed;
+    // record track time of each frame
     const std::string timeFile = outputDir + "ORB-stereo-robot-time.txt";
     FILE *fp = fopen(timeFile.c_str(), "w");
     // Main loop
@@ -100,7 +105,14 @@ int main(int argc, char **argv)
 #endif
 
         // Pass the images to the SLAM system
-        SLAM.TrackStereo(imLeft,imRight,tframe);
+        cv::Mat Tcw = SLAM.TrackStereo(imLeft,imRight,tframe);
+        cv::Mat Rwc = Tcw.rowRange(0,3).colRange(0,3).t();
+        cv::Mat twc = -Rwc*Tcw.rowRange(0,3).col(3);
+
+        f << setprecision(9) <<
+            Rwc.at<float>(0,0) << " " << Rwc.at<float>(0,1)  << " " << Rwc.at<float>(0,2) << " "  << twc.at<float>(0) << " " <<
+            Rwc.at<float>(1,0) << " " << Rwc.at<float>(1,1)  << " " << Rwc.at<float>(1,2) << " "  << twc.at<float>(1) << " " <<
+            Rwc.at<float>(2,0) << " " << Rwc.at<float>(2,1)  << " " << Rwc.at<float>(2,2) << " "  << twc.at<float>(2) << endl;
 
 #ifdef COMPILEDWITHC11
         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
@@ -113,15 +125,16 @@ int main(int argc, char **argv)
         vTimesTrack[ni]=ttrack;
 
         // Wait to load the next frame
-        double T=0;
-        if(ni<nImages-1)
-            T = vTimestamps[ni+1]-tframe;
-        else if(ni>0)
-            T = tframe-vTimestamps[ni-1];
+        // double T=0;
+        // if(ni<nImages-1)
+        //     T = vTimestamps[ni+1]-tframe;
+        // else if(ni>0)
+        //     T = tframe-vTimestamps[ni-1];
 
         // if(ttrack<T)
         //     usleep((T-ttrack)*1e6);
     }
+    f.close();
     fclose(fp);
 
     // Stop all threads
@@ -137,10 +150,6 @@ int main(int argc, char **argv)
     cout << "-------" << endl << endl;
     cout << "median tracking time: " << vTimesTrack[nImages/2] << endl;
     cout << "mean tracking time: " << totaltime/nImages << endl;
-
-    // Save camera trajectory
-    const std::string trjFile = outputDir + "ORB-stereo-robot.txt";
-    SLAM.SaveTrajectoryKITTIWithTime(trjFile.c_str());
 
     // stat info
     const std::string statFile = outputDir + "ORB-stereo-robot-stat.txt";
