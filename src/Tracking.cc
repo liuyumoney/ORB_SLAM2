@@ -317,7 +317,23 @@ void Tracking::Track()
             }
             else
             {
-                bOK = Relocalization();
+                /// Not relocalize, re-initialize
+                StereoReInitialization();
+
+                mpFrameDrawer->Update(this);
+                if(mState!=OK)
+                    return;
+
+                /// update velocity model
+                mVelocity = cv::Mat();
+
+                cv::Mat Tcr = mCurrentFrame.mTcw*mCurrentFrame.mpReferenceKF->GetPoseInverse();
+                mlRelativeFramePoses.push_back(Tcr);
+                mlpReferences.push_back(mpReferenceKF);
+                mlFrameTimes.push_back(mCurrentFrame.mTimeStamp);
+                mlbLost.push_back(mState==LOST);
+
+                return;
             }
         }
         else
@@ -412,7 +428,7 @@ void Tracking::Track()
         if(bOK)
             mState = OK;
         else
-            mState=LOST;
+            mState = LOST;
 
         // Update drawer
         mpFrameDrawer->Update(this);
@@ -482,7 +498,10 @@ void Tracking::Track()
         if(!mCurrentFrame.mpReferenceKF)
             mCurrentFrame.mpReferenceKF = mpReferenceKF;
 
-        mLastFrame = Frame(mCurrentFrame);
+        /// < add, when tracking is good, update last frame
+        if(mState == OK)
+            mLastFrame = Frame(mCurrentFrame);
+
     }
 
     // Store frame pose information to retrieve the complete camera trajectory afterwards.
@@ -496,6 +515,10 @@ void Tracking::Track()
     }
     else
     {
+        /// < add, when tracking is lost, set current pose for output
+        if( ! mLastFrame.mTcw.empty() )
+            mCurrentFrame.mTcw == mLastFrame.mTcw;
+
         // This can happen if tracking is lost
         mlRelativeFramePoses.push_back(mlRelativeFramePoses.back());
         mlpReferences.push_back(mlpReferences.back());
@@ -537,7 +560,7 @@ void Tracking::StereoInitialization()
             }
         }
 
-        cout << "New map created with " << mpMap->MapPointsInMap() << " points" <<
+        cout << "New map created with " << mpMap->MapPointsInMap() << " points" <<std::endl<<
              "start from frame: " << setiosflags(ios::fixed) << setprecision(6) <<
              mCurrentFrame.mTimeStamp << endl;
 
@@ -561,6 +584,68 @@ void Tracking::StereoInitialization()
         mState=OK;
     }
 }
+
+void Tracking::StereoReInitialization() {
+
+    /// <add, each frame has a pose
+    if( !mLastFrame.mTcw.empty())
+        mCurrentFrame.SetPose(mLastFrame.mTcw);
+
+    if(mCurrentFrame.N > 500)
+    {
+        // Set Frame pose to the origin
+//        mCurrentFrame.SetPose(cv::Mat::eye(4,4,CV_32F));
+
+        // Create KeyFrame
+        KeyFrame* pKFini = new KeyFrame(mCurrentFrame,mpMap,mpKeyFrameDB);
+
+        // Insert KeyFrame in the map
+        mpMap->AddKeyFrame(pKFini);
+
+        // Create MapPoints and asscoiate to KeyFrame
+        for(int i=0; i<mCurrentFrame.N;i++)
+        {
+            float z = mCurrentFrame.mvDepth[i];
+            if(z>0)
+            {
+                cv::Mat x3D = mCurrentFrame.UnprojectStereo(i);
+                MapPoint* pNewMP = new MapPoint(x3D,pKFini,mpMap);
+                pNewMP->AddObservation(pKFini,i);
+                pKFini->AddMapPoint(pNewMP,i);
+                pNewMP->ComputeDistinctiveDescriptors();
+                pNewMP->UpdateNormalAndDepth();
+                mpMap->AddMapPoint(pNewMP);
+
+                mCurrentFrame.mvpMapPoints[i]=pNewMP;
+            }
+        }
+
+        cout << "New map created with " << mpMap->MapPointsInMap() << " points" <<std::endl<<
+             "start from frame: " << setiosflags(ios::fixed) << setprecision(6) <<
+             mCurrentFrame.mTimeStamp << endl;
+
+        mpLocalMapper->InsertKeyFrame(pKFini);
+
+        mLastFrame = Frame(mCurrentFrame);
+        mnLastKeyFrameId=mCurrentFrame.mnId;
+        mpLastKeyFrame = pKFini;
+
+        mvpLocalKeyFrames.push_back(pKFini);
+        mvpLocalMapPoints=mpMap->GetAllMapPoints();
+        mpReferenceKF = pKFini;
+        mCurrentFrame.mpReferenceKF = pKFini;
+
+        mpMap->SetReferenceMapPoints(mvpLocalMapPoints);
+
+        mpMap->mvpKeyFrameOrigins.push_back(pKFini);
+
+        mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.mTcw);
+
+        mState=OK;
+
+    }
+}
+
 
 void Tracking::MonocularInitialization()
 {

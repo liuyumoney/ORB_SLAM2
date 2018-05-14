@@ -199,12 +199,12 @@ protected:
 
     cv::Mat Cw; // Stereo middel point. Only for visualization
 
-    // MapPoints associated to keypoints
-    std::vector<MapPoint*> mvpMapPoints;
-
     // BoW
     KeyFrameDatabase* mpKeyFrameDB;
     ORBVocabulary* mpORBvocabulary;
+
+    // MapPoints associated to keypoints
+    std::vector<MapPoint*> mvpMapPoints;
 
     // Grid over the image to speed up feature matching
     std::vector< std::vector <std::vector<size_t> > > mGrid;

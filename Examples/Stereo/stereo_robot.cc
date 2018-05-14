@@ -36,31 +36,32 @@ bool LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
 
 int main(int argc, char **argv)
 {
-    if(argc < 5)
+    if(argc < 2)
     {
         cerr << endl <<
-            "Usage: ./stereo_robot path_to_vocabulary path_to_settings \
-             path_to_sequence output_path iBegin"
+            "Usage: ./stereo_robot path_to_sequence iBegin"
             << endl;
         return 1;
     }
     int iBegin = 0;
-    if (argc == 6) {
-        sscanf(argv[5], "%d", &iBegin);
+    if (argc == 3) {
+        sscanf(argv[2], "%d", &iBegin);
     }
 
     // Retrieve paths to images
     vector<string> vstrImageLeft;
     vector<string> vstrImageRight;
     vector<double> vTimestamps;
-    if (!LoadImages(string(argv[3]), vstrImageLeft, vstrImageRight, vTimestamps))
+    if (!LoadImages(string(argv[1]), vstrImageLeft, vstrImageRight, vTimestamps))
         return 1;
-    const std::string outputDir(argv[4]);
-    const std::string strSeqPath(argv[3]);
+    const std::string strSeqPath(argv[1]);
+    const std::string outputDir = strSeqPath.substr(0, strSeqPath.find("stereo"));
     const int nImages = vstrImageLeft.size();
 
+    std::string vocFile = "/home/sensetime/3DV-AD/ORB_SLAM2/Vocabulary/ORBvoc.txt";
+    std::string settingFile = "/home/sensetime/3DV-AD/ORB_SLAM2/Examples/Stereo/Robot.yaml";
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,true);
+    ORB_SLAM2::System SLAM(vocFile,settingFile,ORB_SLAM2::System::STEREO,true);
 
     // Vector for tracking time statistics
     vector<float> vTimesTrack;
@@ -70,7 +71,7 @@ int main(int argc, char **argv)
     cout << "input seq path: " << strSeqPath << endl;
     cout << "output dir: " << outputDir << endl;
     cout << "Start processing sequence ..." << endl;
-    cout << "Images in the sequence: " << nImages << endl << endl;   
+    cout << "Images in the sequence: " << nImages << endl << endl;
 
     // Save camera trajectory
     const std::string trjFile = outputDir + "ORB-stereo-robot.txt";
@@ -106,13 +107,17 @@ int main(int argc, char **argv)
 
         // Pass the images to the SLAM system
         cv::Mat Tcw = SLAM.TrackStereo(imLeft,imRight,tframe);
-        cv::Mat Rwc = Tcw.rowRange(0,3).colRange(0,3).t();
-        cv::Mat twc = -Rwc*Tcw.rowRange(0,3).col(3);
 
-        f << setprecision(9) <<
-            Rwc.at<float>(0,0) << " " << Rwc.at<float>(0,1)  << " " << Rwc.at<float>(0,2) << " "  << twc.at<float>(0) << " " <<
-            Rwc.at<float>(1,0) << " " << Rwc.at<float>(1,1)  << " " << Rwc.at<float>(1,2) << " "  << twc.at<float>(1) << " " <<
-            Rwc.at<float>(2,0) << " " << Rwc.at<float>(2,1)  << " " << Rwc.at<float>(2,2) << " "  << twc.at<float>(2) << endl;
+        if( ! Tcw.empty() )
+        {
+            cv::Mat Rwc = Tcw.rowRange(0,3).colRange(0,3).t();
+            cv::Mat twc = -Rwc*Tcw.rowRange(0,3).col(3);
+
+            f << setprecision(9) << tframe<<" "<<
+              Rwc.at<float>(0,0) << " " << Rwc.at<float>(0,1)  << " " << Rwc.at<float>(0,2) << " "  << twc.at<float>(0) << " " <<
+              Rwc.at<float>(1,0) << " " << Rwc.at<float>(1,1)  << " " << Rwc.at<float>(1,2) << " "  << twc.at<float>(1) << " " <<
+              Rwc.at<float>(2,0) << " " << Rwc.at<float>(2,1)  << " " << Rwc.at<float>(2,2) << " "  << twc.at<float>(2) << endl;
+        }
 
 #ifdef COMPILEDWITHC11
         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
@@ -124,15 +129,6 @@ int main(int argc, char **argv)
         fprintf(fp, "%lf\n", ttrack);
         vTimesTrack[ni]=ttrack;
 
-        // Wait to load the next frame
-        // double T=0;
-        // if(ni<nImages-1)
-        //     T = vTimestamps[ni+1]-tframe;
-        // else if(ni>0)
-        //     T = tframe-vTimestamps[ni-1];
-
-        // if(ttrack<T)
-        //     usleep((T-ttrack)*1e6);
     }
     f.close();
     fclose(fp);

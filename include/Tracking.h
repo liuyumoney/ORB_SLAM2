@@ -123,6 +123,9 @@ protected:
     // Map initialization for stereo and RGB-D
     void StereoInitialization();
 
+    // Map Re-initialization for stereo
+    void StereoReInitialization();
+
     // Map initialization for monocular
     void MonocularInitialization();
     void CreateInitialMapMonocular();
