@@ -1,0 +1,17 @@
+#./Examples/Stereo/stereo_robot /data/robotcar/2014-05-14-13-46-12/stereo/ 30
+#./Examples/Stereo/stereo_robot /data/robotcar/2014-05-19-12-51-39/stereo/ 30
+#./Examples/Stereo/stereo_robot /data/robotcar/2014-05-19-13-05-38/stereo/ 30
+#./Examples/Stereo/stereo_robot /data/robotcar/2014-05-19-13-20-57/stereo/ 30
+#./Examples/Stereo/stereo_robot /data/robotcar/2014-06-26-08-53-56/stereo/ 20
+#./Examples/Stereo/stereo_robot /data/robotcar/2014-06-26-09-31-18/stereo/ 0
+#./Examples/Stereo/stereo_robot /data/robotcar/2014-07-14-15-16-36/stereo/ 30
+#./Examples/Stereo/stereo_robot /data/robotcar/2014-07-14-15-42-55/stereo/ 30
+#./Examples/Stereo/stereo_robot /data/robotcar/2014-11-18-13-20-12/stereo/ 30
+#./Examples/Stereo/stereo_robot /data/robotcar/2014-11-25-09-18-32/stereo/ 20
+#./Examples/Stereo/stereo_robot /data/robotcar/2014-12-05-11-09-10/stereo/ 20
+#./Examples/Stereo/stereo_robot /data/robotcar/2014-12-10-18-10-50/stereo/ 20
+#./Examples/Stereo/stereo_robot /data/robotcar/2014-12-16-18-44-24/stereo/ 20
+./Examples/Stereo/stereo_robot /data/robotcar/13/stereo/ 20
+#./Examples/Stereo/stereo_robot /data/robotcar/14/stereo/ 0
+#./Examples/Stereo/stereo_robot /data/robotcar/15/stereo/ 30
+#./Examples/Stereo/stereo_robot /data/robotcar/16/stereo/ 20

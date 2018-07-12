@@ -39,13 +39,16 @@ int main(int argc, char **argv)
     if(argc < 2)
     {
         cerr << endl <<
-            "Usage: ./stereo_robot path_to_sequence iBegin"
+            "Usage: ./stereo_robot path_to_sequence iBegin iEnd"
             << endl;
         return 1;
     }
-    int iBegin = 0;
-    if (argc == 3) {
+    int iBegin = 0, iEnd = -1;
+    if (argc >= 3) {
         sscanf(argv[2], "%d", &iBegin);
+    }
+    if (argc >= 4) {
+        sscanf(argv[3], "%d", &iEnd);
     }
 
     // Retrieve paths to images
@@ -56,10 +59,10 @@ int main(int argc, char **argv)
         return 1;
     const std::string strSeqPath(argv[1]);
     const std::string outputDir = strSeqPath.substr(0, strSeqPath.find("stereo"));
-    const int nImages = vstrImageLeft.size();
+    int nImages = vstrImageLeft.size();
 
-    std::string vocFile = "/home/sensetime/3DV-AD/ORB_SLAM2/Vocabulary/ORBvoc.txt";
-    std::string settingFile = "/home/sensetime/3DV-AD/ORB_SLAM2/Examples/Stereo/Robot.yaml";
+    std::string vocFile = "/prj/3DV-AD/ORB_SLAM2/Vocabulary/ORBvoc.txt";
+    std::string settingFile = "/prj/3DV-AD/ORB_SLAM2/Examples/Stereo/Robot.yaml";
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     ORB_SLAM2::System SLAM(vocFile,settingFile,ORB_SLAM2::System::STEREO,true);
 
@@ -83,12 +86,15 @@ int main(int argc, char **argv)
     FILE *fp = fopen(timeFile.c_str(), "w");
     // Main loop
     cv::Mat imLeft, imRight;
+    if (iEnd != -1 && iEnd < nImages)
+        nImages = iEnd;
+    std::cout << "test sequence:" << iBegin << "-->" << nImages << std::endl;
     for(int ni=iBegin; ni<nImages; ni++)
     {
         // Read left and right images from file
-        imLeft = cv::imread(strSeqPath + "left_rectify/" + vstrImageLeft[ni],
+        imLeft = cv::imread(strSeqPath + "image_0/" + vstrImageLeft[ni],
             CV_LOAD_IMAGE_UNCHANGED);
-        imRight = cv::imread(strSeqPath + "right_rectify/" + vstrImageRight[ni],
+        imRight = cv::imread(strSeqPath + "image_1/" + vstrImageRight[ni],
             CV_LOAD_IMAGE_UNCHANGED);
         double tframe = vTimestamps[ni];
 
@@ -225,8 +231,8 @@ bool LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
         return false;
     }
 
-    string strPrefixLeft = strPathToSequence + "/left_rectify/";
-    string strPrefixRight = strPathToSequence + "/right_rectify/";
+    string strPrefixLeft = strPathToSequence + "/image_0/";
+    string strPrefixRight = strPathToSequence + "/image_1/";
 
     GetFileNames(strPrefixLeft, vstrImageLeft);
     GetFileNames(strPrefixRight, vstrImageRight);
@@ -244,3 +250,4 @@ bool LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
 
     return true;
 }
+
