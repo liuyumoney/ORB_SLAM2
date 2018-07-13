@@ -53,7 +53,7 @@ int main(int argc, char **argv)
     const int nImages = vstrImageLeft.size();
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,true);
+    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,false);
 
     // Vector for tracking time statistics
     vector<float> vTimesTrack;
@@ -104,14 +104,14 @@ int main(int argc, char **argv)
         vTimesTrack[ni]=ttrack;
 
         // Wait to load the next frame
-        double T=0;
-        if(ni<nImages-1)
-            T = vTimestamps[ni+1]-tframe;
-        else if(ni>0)
-            T = tframe-vTimestamps[ni-1];
-
-        if(ttrack<T)
-            usleep((T-ttrack)*1e6);
+//        double T=0;
+//        if(ni<nImages-1)
+//            T = vTimestamps[ni+1]-tframe;
+//        else if(ni>0)
+//            T = tframe-vTimestamps[ni-1];
+//
+//        if(ttrack<T)
+//           usleep((T-ttrack)*1e6);
     }
     fclose(fp);
 
